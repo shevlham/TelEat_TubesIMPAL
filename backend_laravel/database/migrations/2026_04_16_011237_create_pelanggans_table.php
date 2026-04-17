@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
 {
     Schema::create('pelanggans', function (Blueprint $table) {
-    $table->id(); // WAJIB
+    $table->id();
 
     $table->foreignId('user_id')
         ->unique()

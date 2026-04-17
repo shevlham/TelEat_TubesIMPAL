@@ -13,34 +13,36 @@ use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
     public function register(Request $request)
-{
-    $request->validate([
-        'username'  => 'required|unique:users',
-        'password'  => 'required|min:4',
-        'role'      => 'required|in:ADMIN,MERCHANT,PELANGGAN',
-        'nama'      => 'required|string',
-    ]);
+    {
+        $request->validate([
+            'username'  => 'required|unique:users',
+            'password'  => 'required|min:4',
+            'role'      => 'required|in:ADMIN,MERCHANT,PELANGGAN',
+            'nama'      => 'required|string',
+        ]);
 
-    $user = User::create([
-        'username' => $request->username,
-        'password' => Hash::make($request->password),
-        'role'     => $request->role,
-    ]);
+        $user = User::create([
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
+            'role'     => $request->role,
+        ]);
 
-    match ($request->role) {
-        'ADMIN'     => Admin::create(['user_id' => $user->id, 'nama' => $request->nama]),
-        'MERCHANT'  => Merchant::create(['user_id' => $user->id, 'nama_merchant' => $request->nama]),
-        'PELANGGAN' => Pelanggan::create(['user_id' => $user->id, 'nama' => $request->nama]),
-    };
+        match ($request->role) {
+            'ADMIN'     => Admin::create(['user_id' => $user->id, 'nama' => $request->nama]),
+            'MERCHANT'  => Merchant::create(['user_id' => $user->id, 'nama_merchant' => $request->nama]),
+            'PELANGGAN' => Pelanggan::create(['user_id' => $user->id, 'nama' => $request->nama]),
+        };
 
-    $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-    return response()->json([
-        'success' => true,
-        'token'   => $token,
-        'user'    => $this->userWithProfile($user),
-    ], 201);
-}
+        $user->load(['admin', 'merchant', 'pelanggan']); // ← DITAMBAHKAN
+
+        return response()->json([
+            'success' => true,
+            'token'   => $token,
+            'user'    => $this->userWithProfile($user),
+        ], 201);
+    }
 
     public function login(Request $request)
     {
@@ -57,6 +59,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->load(['admin', 'merchant', 'pelanggan']); // ← DITAMBAHKAN
+
         return response()->json([
             'success' => true,
             'token'   => $token,
@@ -72,7 +76,9 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($this->userWithProfile($request->user()));
+        $user = $request->user();
+        $user->load(['admin', 'merchant', 'pelanggan']); // ← DITAMBAHKAN
+        return response()->json($this->userWithProfile($user));
     }
 
     private function userWithProfile(User $user): array
