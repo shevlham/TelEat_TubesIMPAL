@@ -747,8 +747,8 @@ function MenuCard({ m, role, onEdit, onDel, onCart }) {
   return (
     <div className="card-hover" style={{ background:C.white, borderRadius:16, overflow:"hidden", border:`1px solid ${C.gray100}`, boxShadow:"0 2px 8px rgba(15,23,42,.06)" }}>
       <div style={{ height:120, position:"relative", background:`linear-gradient(135deg, ${C.blueLight}, ${C.redLight})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:44 }}>
-        {m.foto_url && <img src={`http://localhost:8000/storage/${m.gambar}`} alt={m.nama_menu} style={{ width:"100%", height:"100%", objectFit:"cover", position:"absolute", inset:0 }} />}
-        {!m.foto_url && "🍽️"}
+        {m.gambar && <img src={m.gambar.startsWith('http') ? m.gambar : `http://localhost:8000/storage/${m.gambar}`} alt={m.nama_menu} style={{ width:"100%", height:"100%", objectFit:"cover", position:"absolute", inset:0 }} />}
+        {!m.gambar && "🍽️"}
         {!inStock && (
           <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,.5)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ background:C.danger, color:C.white, fontSize:11, fontWeight:800, padding:"4px 12px", borderRadius:99 }}>HABIS</span>
