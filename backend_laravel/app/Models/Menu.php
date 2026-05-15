@@ -10,7 +10,8 @@ class Menu extends Model
         'nama_menu',
         'harga',
         'stok',
-        'merchant_id'
+        'merchant_id',
+        'gambar'
     ];
 
     public function merchant()

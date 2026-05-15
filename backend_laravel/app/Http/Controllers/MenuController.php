@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
-    // GET /api/menus — semua menu (publik)
+
     public function index()
     {
         $menus = Menu::with('merchant:id,nama_merchant')->get();
@@ -23,14 +23,13 @@ class MenuController extends Controller
         return response()->json(['success' => true, 'data' => $menu]);
     }
 
-    // POST /api/menus — merchant tambah menu
     public function store(Request $request)
 {
     $request->validate([
         'nama_menu' => 'required|string',
         'harga'     => 'required|numeric|min:0',
         'stok'      => 'required|integer|min:0',
-        'gambar'    => 'nullable|image|mimes:jpg,jpeg,png|max:2048', // 👈 tambah
+        'gambar'    => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
     ]);
 
     $merchant = $request->user()->merchant;
@@ -39,7 +38,11 @@ class MenuController extends Controller
     }
 
     if ($request->hasFile('gambar')) {
-        $path = $request->file('gambar')->store('menu', 'public');
+        $result = cloudinary()->uploadApi()->upload($request->file('gambar')->getRealPath(), [
+            'folder' => 'menu',
+            'verify' => false
+        ]);
+        $path = $result['secure_url'];
     } else {
         $path = null;
     }
@@ -49,13 +52,13 @@ class MenuController extends Controller
         'nama_menu'   => $request->nama_menu,
         'harga'       => $request->harga,
         'stok'        => $request->stok,
-        'gambar'      => $path, // 👈 simpan path
+        'gambar'      => $path,
     ]);
 
     return response()->json(['success' => true, 'data' => $menu], 201);
 }
 
-    // PUT /api/menus/{id}
+
     public function update(Request $request, $id)
 {
     $menu = Menu::findOrFail($id);
@@ -66,12 +69,12 @@ class MenuController extends Controller
     }
 
     if ($request->hasFile('gambar')) {
-        if ($menu->gambar) {
-            Storage::disk('public')->delete($menu->gambar);
-        }
-
-        $path = $request->file('gambar')->store('menu', 'public');
-        $menu->gambar = $path;
+        
+        $result = cloudinary()->uploadApi()->upload($request->file('gambar')->getRealPath(), [
+            'folder' => 'menu',
+            'verify' => false
+        ]);
+        $menu->gambar = $result['secure_url'];
     }
 
     $menu->update($request->only(['nama_menu', 'harga', 'stok']));
