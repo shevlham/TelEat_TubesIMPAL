@@ -5,6 +5,8 @@ cara run local
 1. git init di cmd folder yang diinginkan
 2. git clone https://github.com/shevlham/TelEat_TubesIMPAL
 3. copy .env.example .env (cmd backend)
+4. composer install (cmd backend)
+5. npm install (cmd frontend)
 
 cara migrate database dari laravel
 1. start apache dan my sql di xampp
