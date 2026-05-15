@@ -34,14 +34,34 @@ class AdminController extends Controller
     // GET /api/admin/dashboard
     public function dashboard()
     {
+        $transaksis = Transaksi::with(['pesanan.pelanggan', 'pesanan.merchant'])->latest()->get();
+
         return response()->json([
             'success' => true,
             'data' => [
                 'total_user'      => User::count(),
                 'total_pesanan'   => Pesanan::count(),
-                'total_transaksi' => Transaksi::sum('total_bayar'),
+                'total_transaksi' => Transaksi::where('status_bayar', 'LUNAS')->sum('total_bayar'),
                 'pesanan_pending' => Pesanan::where('status', 'PENDING')->count(),
+                'transaksis'      => $transaksis
             ]
         ]);
+    }
+
+    // PUT /api/admin/transaksi/{id}/lunas
+    public function lunasTransaksi($id)
+    {
+        $transaksi = Transaksi::findOrFail($id);
+        $transaksi->update(['status_bayar' => 'LUNAS']);
+        
+        // Also update pesanan status if necessary (optional)
+        // $transaksi->pesanan->update(['status' => 'DIPROSES']); 
+        // We will leave the pesanan status logic to the merchant or auto-update to DIPROSES if paid.
+        // Usually, if paid, it can be processed by the merchant. Let's update pesanan status.
+        if ($transaksi->pesanan && $transaksi->pesanan->status === 'PENDING') {
+            $transaksi->pesanan->update(['status' => 'DIPROSES']);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Pembayaran berhasil dikonfirmasi']);
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Pesanan;
 use App\Models\DetailPesanan;
 use App\Models\Transaksi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PesananController extends Controller
 {
@@ -43,38 +44,56 @@ class PesananController extends Controller
             return response()->json(['message' => 'Hanya pelanggan yang bisa memesan'], 403);
         }
 
-        $pesanan = Pesanan::create([
-            'pelanggan_id' => $pelanggan->id,
-            'merchant_id'  => $request->merchant_id,
-            'status'       => 'PENDING',
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $totalBayar = 0;
-        foreach ($request->items as $item) {
-            $menu = Menu::findOrFail($item['menu_id']);
-            $subtotal = $menu->harga * $item['jumlah'];
-            $totalBayar += $subtotal;
-
-            DetailPesanan::create([
-                'pesanan_id' => $pesanan->id,
-                'menu_id'    => $item['menu_id'],
-                'jumlah'     => $item['jumlah'],
-                'subtotal'   => $subtotal,
+            $pesanan = Pesanan::create([
+                'pelanggan_id' => $pelanggan->id,
+                'merchant_id'  => $request->merchant_id,
+                'status'       => 'PENDING',
             ]);
+
+            $totalBayar = 0;
+            foreach ($request->items as $item) {
+                $menu = Menu::lockForUpdate()->findOrFail($item['menu_id']);
+
+                if ($menu->stok < $item['jumlah']) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Stok ' . $menu->nama_menu . ' tidak mencukupi'], 400);
+                }
+
+                $subtotal = $menu->harga * $item['jumlah'];
+                $totalBayar += $subtotal;
+
+                DetailPesanan::create([
+                    'pesanan_id' => $pesanan->id,
+                    'menu_id'    => $item['menu_id'],
+                    'jumlah'     => $item['jumlah'],
+                    'subtotal'   => $subtotal,
+                ]);
+
+                // Kurangi stok
+                $menu->decrement('stok', $item['jumlah']);
+            }
+
+            // Buat transaksi otomatis
+            Transaksi::create([
+                'pesanan_id'  => $pesanan->id,
+                'total_bayar' => $totalBayar,
+                'metode_bayar'=> $request->metode_bayar ?? 'CASH',
+                'status_bayar'=> 'PENDING',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $pesanan->load(['details.menu', 'transaksi']),
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
         }
-
-        // Buat transaksi otomatis
-        Transaksi::create([
-            'pesanan_id'  => $pesanan->id,
-            'total_bayar' => $totalBayar,
-            'metode_bayar'=> $request->metode_bayar ?? 'CASH',
-            'status_bayar'=> 'PENDING',
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data'    => $pesanan->load(['details.menu', 'transaksi']),
-        ], 201);
     }
 
     // PUT /api/pesanans/{id}/status — merchant update status

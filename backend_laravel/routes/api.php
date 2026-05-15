@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PesananController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\MerchantController;
 
 // ─── PUBLIC ──────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -33,8 +34,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin only
     Route::prefix('admin')->group(function () {
-        Route::get('/dashboard',       [AdminController::class, 'dashboard']);
-        Route::get('/users',           [AdminController::class, 'users']);
-        Route::delete('/users/{id}',   [AdminController::class, 'deleteUser']);
+        Route::get('/dashboard',              [AdminController::class, 'dashboard']);
+        Route::get('/users',                  [AdminController::class, 'users']);
+        Route::delete('/users/{id}',          [AdminController::class, 'deleteUser']);
+        Route::put('/transaksi/{id}/lunas',   [AdminController::class, 'lunasTransaksi']);
+    });
+
+    // Merchant only
+    Route::prefix('merchant')->group(function () {
+        Route::get('/dashboard',       [MerchantController::class, 'dashboard']);
     });
 });
