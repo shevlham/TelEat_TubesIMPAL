@@ -1,0 +1,101 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { C } from "../styles/tokens";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
+import { apiFetch } from "../services/api";
+import AuthShell from "../components/layout/AuthShell";
+import Inp, { inputStyle, labelStyle } from "../components/ui/Input";
+import Divider from "../components/ui/Divider";
+import GoogleSignInBtn from "../components/ui/GoogleSignInBtn";
+import { BtnRed } from "../components/ui/Button";
+
+export default function RegisterPage() {
+  const { login } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ nama: "", username: "", password: "", role: "PELANGGAN", foto_profil: null });
+  const [loading, setLoading] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    if (form.password.length < 6) { 
+        toast("Password minimal 6 karakter", "warn"); 
+        return; 
+    }
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("nama", form.nama);
+      fd.append("username", form.username);
+      fd.append("password", form.password);
+      fd.append("role", form.role);
+      if (form.foto_profil) {
+        fd.append("foto_profil", form.foto_profil);
+      }
+
+      const res = await apiFetch("POST", "/register", fd);
+
+      login(res.user, res.token);
+      toast("Akun berhasil dibuat! 🎉");
+      navigate("/");
+    } catch (err) { 
+        toast(err.message, "error"); 
+    } finally { 
+        setLoading(false); 
+    }
+  };
+
+  return (
+    <AuthShell>
+      <h1 style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 26, color: C.gray900, marginBottom: 4 }}>Daftar</h1>
+      <p style={{ color: C.gray400, fontSize: 14, marginBottom: 24 }}>Buat akun baru gratis!</p>
+
+      <form onSubmit={submit}>
+        <Inp label="Nama Lengkap / Nama Warung" placeholder="Nama kamu"
+          value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })} required />
+        <Inp label="Username" placeholder="Username kamu"
+          value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required />
+        <Inp label="Password" type="password" placeholder="Min. 6 karakter"
+          value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Foto Profil / Logo Toko</label>
+          <input type="file" accept="image/*" onChange={e => setForm({ ...form, foto_profil: e.target.files[0] })} style={inputStyle} />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={labelStyle}>Daftar sebagai</label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {[
+              { val: "PELANGGAN", icon: "🛍️", label: "Pelanggan", desc: "Pesan makanan" },
+              { val: "MERCHANT", icon: "🏪", label: "Merchant", desc: "Jual makanan" },
+            ].map(r => (
+              <button type="button" key={r.val} onClick={() => setForm({ ...form, role: r.val })} style={{
+                padding: "14px 10px", border: `2px solid ${form.role === r.val ? C.blue : C.gray200}`,
+                borderRadius: 12, background: form.role === r.val ? C.blueLight : C.white,
+                cursor: "pointer", textAlign: "center", transition: "all .2s",
+              }}>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{r.icon}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: form.role === r.val ? C.blue : C.gray900 }}>{r.label}</div>
+                <div style={{ fontSize: 11, color: C.gray400, marginTop: 2 }}>{r.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Divider />
+        <GoogleSignInBtn />
+
+        <BtnRed full disabled={loading} style={{ marginTop: 24 }}>
+          {loading ? "Mendaftar…" : "Buat Akun"}
+        </BtnRed>
+      </form>
+
+      <p style={{ textAlign: "center", marginTop: 24, color: C.gray400, fontSize: 14 }}>
+        Sudah punya akun?{" "}
+        <span style={{ color: C.blue, fontWeight: 700, cursor: "pointer" }} onClick={() => navigate("/login")}>Masuk</span>
+      </p>
+    </AuthShell>
+  );
+}

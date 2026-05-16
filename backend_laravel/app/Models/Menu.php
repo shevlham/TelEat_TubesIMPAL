@@ -11,7 +11,8 @@ class Menu extends Model
         'harga',
         'stok',
         'merchant_id',
-        'gambar'
+        'gambar',
+        'kategori'
     ];
 
     public function merchant()

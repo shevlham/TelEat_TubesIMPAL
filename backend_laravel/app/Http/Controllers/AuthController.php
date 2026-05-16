@@ -17,16 +17,27 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'nama'     => 'required|string|max:100',
-            'username' => 'required|string|unique:users,username|max:50',
-            'password' => 'required|string|min:6',
-            'role'     => 'required|in:ADMIN,PELANGGAN,MERCHANT',
+            'nama'        => 'required|string|max:100',
+            'username'    => 'required|string|unique:users,username|max:50',
+            'password'    => 'required|string|min:6',
+            'role'        => 'required|in:ADMIN,PELANGGAN,MERCHANT',
+            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        $fotoPath = null;
+        if ($request->hasFile('foto_profil')) {
+            $result = cloudinary()->uploadApi()->upload($request->file('foto_profil')->getRealPath(), [
+                'folder' => 'profile',
+                'verify' => false
+            ]);
+            $fotoPath = $result['secure_url'];
+        }
+
         $user = User::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
+            'username'    => $request->username,
+            'password'    => Hash::make($request->password),
+            'role'        => $request->role,
+            'foto_profil' => $fotoPath,
         ]);
 
         match ($request->role) {
@@ -148,10 +159,11 @@ class AuthController extends Controller
         };
 
         return [
-            'id'       => $user->id,
-            'username' => $user->username,
-            'role'     => $user->role,
-            'profile'  => $profile,
+            'id'          => $user->id,
+            'username'    => $user->username,
+            'role'        => $user->role,
+            'foto_profil' => $user->foto_profil,
+            'profile'     => $profile,
         ];
     }
 

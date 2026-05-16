@@ -12,7 +12,6 @@ use App\Http\Controllers\MerchantController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 Route::get('/menus',     [MenuController::class, 'index']);
-Route::get('/menus/{id}',[MenuController::class, 'show']);
 Route::post('/auth/google/callback', [AuthController::class, 'googleCallback']);
 
 // ─── AUTH REQUIRED ───────────────────────────
@@ -29,11 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Pesanan
     Route::get('/pesanans',                    [PesananController::class, 'index']);
     Route::post('/pesanans',                   [PesananController::class, 'store']);
-    Route::get('/pesanans/{id}',               [PesananController::class, 'show']);
     Route::put('/pesanans/{id}/status',        [PesananController::class, 'updateStatus']);
 
     // Admin only
-    Route::prefix('admin')->group(function () {
+    Route::middleware('role:ADMIN')->prefix('admin')->group(function () {
         Route::get('/dashboard',              [AdminController::class, 'dashboard']);
         Route::get('/users',                  [AdminController::class, 'users']);
         Route::delete('/users/{id}',          [AdminController::class, 'deleteUser']);
@@ -41,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Merchant only
-    Route::prefix('merchant')->group(function () {
+    Route::middleware('role:MERCHANT')->prefix('merchant')->group(function () {
         Route::get('/dashboard',       [MerchantController::class, 'dashboard']);
     });
 });
