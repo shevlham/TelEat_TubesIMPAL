@@ -753,7 +753,7 @@ function MenuCard({ m, role, onEdit, onDel, onCart }) {
         {!m.gambar && "🍽️"}
         {!inStock && (
           <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ background: C.danger, color: C.white, fontSize: 11, fontWeight: 800, padding: "4px 12px", borderRadius: 99 }}>HABIS</span>
+            <span style={{ background: C.danger, color: C.white, fontSize: 11, fontWeight: 800, padding: "4px 12px", borderRadius: 50 }}>HABIS</span>
           </div>
         )}
       </div>
@@ -864,15 +864,46 @@ function MenuPage() {
     catch (er) { toast(er.message, "error"); }
   };
 
-  const addCart = m => {
-    setCart(p => {
-      const ex = p.find(c => c.id === m.id);
-      return ex ? p.map(c => c.id === m.id ? { ...c, qty: c.qty + 1 } : c) : [...p, { ...m, qty: 1 }];
-    });
-    toast(`${m.nama_menu} ditambahkan 🛒`);
-  };
+  const addCart = (m) => {
+  const stokTersedia = Number(m.stok);
 
-  const changeQty = (id, d) => setCart(p => p.map(c => c.id === id ? { ...c, qty: Math.max(1, c.qty + d) } : c));
+  const existingItem = cart.find(c => c.id === m.id);
+  const currentQty = existingItem ? existingItem.qty : 0;
+ 
+  if (currentQty >= stokTersedia) {
+    toast(`Stok ${m.nama_menu} hanya tersisa ${stokTersedia}!`, "warn");
+    return;
+  }
+  
+  setCart(p => {
+    const ex = p.find(c => c.id === m.id);
+    if (ex) {
+      return p.map(c => c.id === m.id ? { ...c, qty: c.qty + 1 } : c);
+    }
+    return [...p, { ...m, qty: 1 }];
+  });
+  toast(`${m.nama_menu} ditambahkan 🛒`);
+};
+
+  const changeQty = (id, delta) => {
+  setCart(p => p.map(c => {
+    if (c.id !== id) return c;
+    
+    const newQty = c.qty + delta;
+    const stokTersedia = Number(c.stok);
+    
+    // Cek jika melebihi stok
+    if (delta > 0 && newQty > stokTersedia) {
+      toast(`Stok ${c.nama_menu} hanya ${stokTersedia}`, "warn");
+      return c;
+    }
+    
+    // Cek jika kurang dari 1
+    if (newQty < 1) return c;
+    
+    return { ...c, qty: newQty };
+  }));
+};
   const removeItem = id => setCart(p => p.filter(c => c.id !== id));
   const totalCart = cart.reduce((s, c) => s + Number(c.harga) * c.qty, 0);
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
@@ -903,7 +934,7 @@ function MenuPage() {
   };
 
   return (
-    <div className="page-enter">
+    <div className="page-enter" style={{ paddingBottom: "90px" }}>  
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
           <h2 style={{ fontFamily: "'Sora',sans-serif", fontSize: 22, fontWeight: 800, color: C.gray900 }}>🍜 Daftar Menu</h2>
@@ -926,22 +957,36 @@ function MenuPage() {
       }
 
       {/* Cart FAB */}
-      {isPelanggan && cart.length > 0 && (
-        <button onClick={() => setOrderModal(true)} style={{
-          position: "fixed", bottom: 80, right: 20,
-          background: `linear-gradient(135deg, ${C.red}, ${C.redDark})`,
-          color: C.white, border: "none", borderRadius: 99, padding: "10px 16px",
-          fontWeight: 700, fontSize: 13, cursor: "pointer", zIndex: 190,
-          boxShadow: `0 8px 24px ${C.red}66`, animation: "pulseRed 2s infinite",
-          display: "flex", alignItems: "center", gap: 8
-        }}>
-          <span style={{ fontSize: 20 }}>🛒</span>
-          <div style={{ textAlign: "left", lineHeight: 1.2 }}>
-            <div style={{ fontSize: 11, opacity: 0.9 }}>{cartCount} item</div>
-            <div style={{ fontWeight: 800 }}>Rp{totalCart.toLocaleString("id-ID")}</div>
-          </div>
-        </button>
-      )}
+{isPelanggan && cart.length > 0 && (
+  <button onClick={() => setOrderModal(true)} style={{
+    position: "fixed", 
+    bottom: 16, 
+    right: 20,
+    background: `linear-gradient(135deg, ${C.red}, ${C.redDark})`,
+    color: C.white, 
+    border: "none", 
+    borderRadius: 99, 
+    padding: "12px 20px",
+    fontWeight: 700, 
+    fontSize: 13, 
+    cursor: "pointer", 
+    zIndex: 190,
+    boxShadow: `0 8px 24px ${C.red}66`, 
+    animation: "pulseRed 2s infinite",
+    display: "flex", 
+    alignItems: "center", 
+    justifyContent: "space-between",
+    gap: 16,
+    width: "auto",
+    minWidth: 160
+  }}>
+    <span style={{ fontSize: 20, order: 1 }}>🛒</span>  
+    <div style={{ textAlign: "right", order: 2 }}> 
+      <div style={{ fontSize: 11, opacity: 0.9 }}>{cartCount} item</div>
+      <div style={{ fontWeight: 800 }}>Rp{totalCart.toLocaleString("id-ID")}</div>
+    </div>
+  </button>
+)}
 
       {/* Menu Modal */}
       <Modal open={menuModal} onClose={() => setMenuModal(false)} title={editId ? "Edit Menu" : "Tambah Menu"}>
